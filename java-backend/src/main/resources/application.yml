@@ -4,6 +4,9 @@ spring:
 
 server:
   port: ${PORT:8085}
+  error:
+    include-message: always
+    include-stacktrace: always
 
 jwt:
   # Secret key used to sign JWT tokens. Minimum 256 bits (32 bytes).
