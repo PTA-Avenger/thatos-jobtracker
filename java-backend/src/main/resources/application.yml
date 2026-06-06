@@ -3,7 +3,7 @@ spring:
     active: dev
 
 server:
-  port: 8085
+  port: ${PORT:8085}
 
 jwt:
   # Secret key used to sign JWT tokens. Minimum 256 bits (32 bytes).
