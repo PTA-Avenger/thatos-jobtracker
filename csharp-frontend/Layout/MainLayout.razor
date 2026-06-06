@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 
-<div class="app-container">
+<div class="app-container @(isLoggedIn && !IsAuthPage() ? "has-sidebar" : "no-sidebar")">
     @if (isCheckingAuth)
     {
         <div class="app-loader-container">

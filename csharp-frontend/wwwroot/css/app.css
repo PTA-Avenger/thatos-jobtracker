@@ -89,12 +89,17 @@ html, body {
 
 /* --- Layout Grid --- */
 .app-container {
-    display: grid;
-    grid-template-columns: 240px 1fr;
     min-height: 100vh;
 }
+.app-container.has-sidebar {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+}
+.app-container.no-sidebar {
+    display: block;
+}
 @media (max-width: 992px) {
-    .app-container {
+    .app-container.has-sidebar {
         grid-template-columns: 1fr;
     }
 }
