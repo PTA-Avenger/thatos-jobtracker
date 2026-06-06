@@ -1,0 +1,109 @@
+@inherits LayoutComponentBase
+
+<div class="app-container">
+    @if (isCheckingAuth)
+    {
+        <div class="app-loader-container">
+            <div class="app-loader-spinner"></div>
+            <div class="app-loader-text">Verifying Session...</div>
+        </div>
+    }
+    else if (!isLoggedIn && !IsAuthPage())
+    {
+        <div class="w-100">
+            <csharp_frontend.Pages.Login OnLoginSuccess="HandleLoginSuccess" />
+        </div>
+    }
+    else
+    {
+        @if (isLoggedIn && !IsAuthPage())
+        {
+            <!-- Sidebar Navigation -->
+            <div class="app-sidebar">
+                <div class="sidebar-logo">
+                    <i class="bi bi-briefcase-fill"></i> JobTracker
+                </div>
+                <div class="sidebar-nav">
+                    <NavLink class="nav-item-link" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-kanban"></i> Kanban Board
+                    </NavLink>
+                    <NavLink class="nav-item-link" href="jobs">
+                        <i class="bi bi-search"></i> Discover Jobs
+                    </NavLink>
+                    <NavLink class="nav-item-link" href="dashboard">
+                        <i class="bi bi-graph-up-arrow"></i> Dashboard
+                    </NavLink>
+                </div>
+                <div class="sidebar-footer">
+                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                        <i class="bi bi-person-circle text-secondary fs-5"></i>
+                        <span class="fw-semibold text-truncate text-primary" style="max-width: 100px;">@username</span>
+                    </div>
+                    <button class="btn-logout" @onclick="HandleLogout">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </div>
+            </div>
+        }
+        
+        <!-- Main Content Area -->
+        <main class="app-main">
+            @Body
+        </main>
+    }
+</div>
+
+@code {
+    private bool isCheckingAuth = true;
+    private bool isLoggedIn = false;
+    private string username = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Intercept navigation events to update layout state dynamically
+        Navigation.LocationChanged += OnLocationChanged;
+        await CheckAuthAsync();
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await CheckAuthAsync();
+    }
+
+    private async Task CheckAuthAsync()
+    {
+        isLoggedIn = await ApiService.IsLoggedInAsync();
+        if (isLoggedIn)
+        {
+            username = await ApiService.GetUsernameAsync() ?? "User";
+        }
+        isCheckingAuth = false;
+        StateHasChanged();
+    }
+
+    private bool IsAuthPage()
+    {
+        var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri);
+        return relativePath.StartsWith("register", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task HandleLoginSuccess()
+    {
+        await CheckAuthAsync();
+        Navigation.NavigateTo("");
+    }
+
+    private async Task HandleLogout()
+    {
+        await ApiService.LogoutAsync();
+        isLoggedIn = false;
+        username = string.Empty;
+        StateHasChanged();
+        Navigation.NavigateTo("");
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

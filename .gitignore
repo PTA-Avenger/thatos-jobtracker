@@ -1,0 +1,40 @@
+# --- Python ---
+python-scraper/.env
+python-scraper/__pycache__/
+python-scraper/*.pyc
+*.pyc
+__pycache__/
+
+# --- Java / Maven ---
+java-backend/target/
+java-backend/*.db
+java-backend/jobtracker.db
+*.db
+.metadata
+.classpath
+.project
+.settings/
+.idea/
+*.class
+*.im
+
+# --- C# / .NET ---
+csharp-frontend/bin/
+csharp-frontend/obj/
+csharp-frontend/.vs/
+csharp-frontend/Properties/launchSettings.json.user
+.vs/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# --- Environment & Tools ---
+maven_bin/
+.maven/
+.maven.zip
+
+# --- Logs & Temp ---
+*.log
+*.tmp
+*.temp

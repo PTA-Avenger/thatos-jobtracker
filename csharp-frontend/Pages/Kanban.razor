@@ -1,0 +1,511 @@
+@page "/"
+
+<div class="kanban-board-container">
+    <!-- Board Header -->
+    <div class="kanban-header">
+        <div>
+            <h1 class="h3 font-weight-bold mb-1">My Application Board</h1>
+            <p class="text-secondary small">Manage your applications and move them through hiring stages</p>
+        </div>
+        <div>
+            <button class="btn-gradient" @onclick="GoToDiscover">
+                <i class="bi bi-plus-lg me-2"></i> Discover & Track Jobs
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center flex-grow-1">
+            <div class="app-loader-spinner"></div>
+        </div>
+    }
+    else
+    {
+        <!-- Kanban Grid -->
+        <div class="kanban-grid">
+            @foreach (var col in Columns)
+            {
+                var columnApps = applications.Where(a => a.Status == col).ToList();
+                <div class="kanban-column"
+                     @ondragover:prevent
+                     @ondragenter="() => HandleDragEnter(col)"
+                     @ondragleave="HandleDragLeave"
+                     @ondrop="() => HandleDrop(col)">
+                    
+                    <div class="column-header">
+                        <span>@col</span>
+                        <span class="column-badge">@columnApps.Count</span>
+                    </div>
+
+                    <div class="column-cards-container @(activeDragColumn == col ? "drag-over" : "")">
+                        @if (columnApps.Count == 0)
+                        {
+                            <div class="text-center text-muted small py-4" style="border: 1px dashed rgba(255,255,255,0.02); border-radius: 8px;">
+                                No applications
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var app in columnApps)
+                            {
+                                <div class="kanban-card" 
+                                     draggable="true" 
+                                     @ondragstart="() => HandleDragStart(app)"
+                                     @onclick="() => OpenDrawer(app)">
+                                    
+                                    <div class="kanban-card-title text-truncate">@app.Job.Title</div>
+                                    <div class="kanban-card-company text-truncate">
+                                        <i class="bi bi-building"></i> @app.Job.Company
+                                    </div>
+                                    
+                                    <!-- Job Skills Badges (Top 2 for brevity) -->
+                                    <div class="kanban-card-skills">
+                                        @if (!string.IsNullOrEmpty(app.Job.Skills))
+                                        {
+                                            var skills = app.Job.Skills.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Take(2);
+                                            foreach (var skill in skills)
+                                            {
+                                                <span class="skill-badge">@skill.Trim()</span>
+                                            }
+                                        }
+                                    </div>
+
+                                    <div class="kanban-card-footer">
+                                        <span>@app.Job.Location</span>
+                                        @if (!string.IsNullOrEmpty(app.CvFilePath))
+                                        {
+                                            <span class="cv-link-indicator" title="CV Attached">
+                                                <i class="bi bi-file-earmark-check"></i>
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Touch/Mobile Chevron Navigation Controls (Stops propagation to not trigger drawer click) -->
+                                    <div class="mobile-card-controls" @onclick:stopPropagation>
+                                        @{
+                                            var prevStatus = GetPrevStatus(app.Status);
+                                            var nextStatus = GetNextStatus(app.Status);
+                                        }
+                                        
+                                        @if (prevStatus != null)
+                                        {
+                                            <button class="btn-mobile-move" @onclick="() => MoveStatusAsync(app, prevStatus)">
+                                                <i class="bi bi-chevron-left"></i> @prevStatus
+                                            </button>
+                                        }
+
+                                        @if (nextStatus != null)
+                                        {
+                                            <button class="btn-mobile-move" @onclick="() => MoveStatusAsync(app, nextStatus)">
+                                                @nextStatus <i class="bi bi-chevron-right"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Drawer Side Panel -->
+@if (isDrawerOpen && selectedApplication != null)
+{
+    <div class="drawer-backdrop" @onclick="CloseDrawer"></div>
+    <div class="drawer-content">
+        <div class="drawer-header">
+            <h4 class="m-0 font-weight-bold text-primary">Application Details</h4>
+            <button class="drawer-close" @onclick="CloseDrawer"><i class="bi bi-x"></i></button>
+        </div>
+
+        <div class="drawer-body">
+            <!-- Job Info Section -->
+            <div class="drawer-section">
+                <h2 class="h5 font-weight-bold mb-1">@selectedApplication.Job.Title</h2>
+                <p class="text-secondary mb-3"><i class="bi bi-building"></i> @selectedApplication.Job.Company — @selectedApplication.Job.Location</p>
+                
+                @if (!string.IsNullOrEmpty(selectedApplication.Job.Url))
+                {
+                    <a href="@selectedApplication.Job.Url" target="_blank" class="btn btn-sm btn-outline d-inline-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-box-arrow-up-right"></i> Original Listing
+                    </a>
+                }
+            </div>
+
+            <!-- CV Association Section -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="bi bi-file-earmark-text"></i> Resume / CV Attachment</div>
+                <div class="d-flex gap-2">
+                    <input type="text" class="glass-input py-1" placeholder="e.g. C:\Resumes\Thato_CV_2026.pdf" @bind="editingCvPath" />
+                    <button class="btn-gradient py-1 px-3" @onclick="SaveCvPath"><i class="bi bi-save"></i></button>
+                </div>
+                @if (!string.IsNullOrEmpty(selectedApplication.CvFilePath))
+                {
+                    <div class="cv-file-box mt-2 small">
+                        <i class="bi bi-file-earmark-check fs-5 text-info"></i>
+                        <span class="text-truncate" style="flex: 1;">@selectedApplication.CvFilePath</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Skills Summary -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="bi bi-tag"></i> Required Skills Summary</div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (!string.IsNullOrEmpty(selectedApplication.Job.Skills))
+                    {
+                        var skills = selectedApplication.Job.Skills.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var skill in skills)
+                        {
+                            <span class="skill-badge" style="font-size: 0.85rem; padding: 4px 10px;">@skill.Trim()</span>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted small">No AI skills tags associated.</span>
+                    }
+                </div>
+            </div>
+
+            <!-- Notes Section -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="bi bi-chat-left-text"></i> Application Notes</div>
+                <div class="sub-list mb-3">
+                    @foreach (var note in selectedApplication.Notes)
+                    {
+                        <div class="sub-item">
+                            <div>
+                                <div class="sub-item-text">@note.Content</div>
+                                <div class="sub-item-meta mt-1">@note.DateCreated</div>
+                            </div>
+                            <button class="btn-icon-delete" @onclick="() => DeleteNoteAsync(note.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    <input type="text" class="glass-input py-1" placeholder="Add a note (e.g., Followed up via LinkedIn)" @bind="newNoteContent" @onkeyup="HandleNoteEnter" />
+                    <button class="btn-gradient py-1 px-3" @onclick="AddNoteAsync"><i class="bi bi-plus-lg"></i></button>
+                </div>
+            </div>
+
+            <!-- Contacts Section -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="bi bi-people"></i> Contacts & Interviewers</div>
+                <div class="sub-list mb-3">
+                    @foreach (var contact in selectedApplication.Contacts)
+                    {
+                        <div class="sub-item">
+                            <div>
+                                <div class="sub-item-text font-weight-bold">@contact.Name</div>
+                                <div class="sub-item-meta">@contact.Role @(string.IsNullOrEmpty(contact.Email) ? "" : "— " + contact.Email) @(string.IsNullOrEmpty(contact.Phone) ? "" : "— " + contact.Phone)</div>
+                            </div>
+                            <button class="btn-icon-delete" @onclick="() => DeleteContactAsync(contact.Id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
+                <div class="glass-card p-3 mb-2" style="background: rgba(255,255,255,0.02);">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="text" class="glass-input py-1 text-sm" placeholder="Name" @bind="newContactName" />
+                        </div>
+                        <div class="col-6">
+                            <input type="text" class="glass-input py-1 text-sm" placeholder="Role (e.g. HR)" @bind="newContactRole" />
+                        </div>
+                        <div class="col-6">
+                            <input type="text" class="glass-input py-1 text-sm" placeholder="Email" @bind="newContactEmail" />
+                        </div>
+                        <div class="col-6">
+                            <input type="text" class="glass-input py-1 text-sm" placeholder="Phone" @bind="newContactPhone" />
+                        </div>
+                    </div>
+                    <button class="btn-gradient w-100 py-1 mt-2 text-sm" @onclick="AddContactAsync">
+                        <i class="bi bi-person-plus-fill me-1"></i> Add Contact
+                    </button>
+                </div>
+            </div>
+
+            <!-- Job Description -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="bi bi-card-text"></i> Full Description</div>
+                <div class="text-secondary small" style="white-space: pre-line; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px;">
+                    @selectedApplication.Job.Description
+                </div>
+            </div>
+
+            <!-- Delete Application -->
+            <div class="mt-4 pt-3 border-top border-secondary">
+                <button class="btn btn-outline border-danger text-danger w-100" @onclick="DeleteApplicationAsync">
+                    <i class="bi bi-trash-fill me-2"></i> Stop Tracking Application
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Application> applications = new();
+    private bool isLoading = true;
+    private readonly string[] Columns = { "Saved", "Applied", "Interview", "Offer", "Rejected" };
+    
+    // Drag & Drop State
+    private Application? draggedApplication;
+    private string? activeDragColumn;
+
+    // Drawer State
+    private Application? selectedApplication;
+    private bool isDrawerOpen = false;
+    private string editingCvPath = string.Empty;
+    private string newNoteContent = string.Empty;
+
+    // Add Contact State
+    private string newContactName = string.Empty;
+    private string newContactRole = string.Empty;
+    private string newContactEmail = string.Empty;
+    private string newContactPhone = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadApplicationsAsync();
+    }
+
+    private async Task LoadApplicationsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            applications = await ApiService.GetApplicationsAsync();
+        }
+        catch (Exception)
+        {
+            // Error handling
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoToDiscover()
+    {
+        Navigation.NavigateTo("jobs");
+    }
+
+    // --- Drag and Drop Handlers ---
+
+    private void HandleDragStart(Application app)
+    {
+        draggedApplication = app;
+    }
+
+    private void HandleDragEnter(string columnName)
+    {
+        activeDragColumn = columnName;
+    }
+
+    private void HandleDragLeave()
+    {
+        activeDragColumn = null;
+    }
+
+    private async Task HandleDrop(string targetColumn)
+    {
+        activeDragColumn = null;
+        if (draggedApplication == null || draggedApplication.Status == targetColumn)
+            return;
+
+        var appToMove = draggedApplication;
+        draggedApplication = null;
+
+        // Perform optimistic update locally
+        appToMove.Status = targetColumn;
+        StateHasChanged();
+
+        try
+        {
+            await ApiService.UpdateApplicationStatusAsync(appToMove.Id, targetColumn);
+        }
+        catch (Exception)
+        {
+            // Revert on failure
+            await LoadApplicationsAsync();
+        }
+    }
+
+    private async Task MoveStatusAsync(Application app, string newStatus)
+    {
+        app.Status = newStatus;
+        StateHasChanged();
+
+        try
+        {
+            await ApiService.UpdateApplicationStatusAsync(app.Id, newStatus);
+        }
+        catch (Exception)
+        {
+            await LoadApplicationsAsync();
+        }
+    }
+
+    private string? GetNextStatus(string currentStatus)
+    {
+        int index = Array.IndexOf(Columns, currentStatus);
+        if (index >= 0 && index < Columns.Length - 1) return Columns[index + 1];
+        return null;
+    }
+
+    private string? GetPrevStatus(string currentStatus)
+    {
+        int index = Array.IndexOf(Columns, currentStatus);
+        if (index > 0) return Columns[index - 1];
+        return null;
+    }
+
+    // --- Drawer Panel Actions ---
+
+    private void OpenDrawer(Application app)
+    {
+        selectedApplication = app;
+        editingCvPath = app.CvFilePath;
+        isDrawerOpen = true;
+        newNoteContent = string.Empty;
+        ClearContactForm();
+    }
+
+    private void CloseDrawer()
+    {
+        isDrawerOpen = false;
+        selectedApplication = null;
+    }
+
+    private async Task SaveCvPath()
+    {
+        if (selectedApplication == null) return;
+        
+        try
+        {
+            var updated = await ApiService.UpdateApplicationCvPathAsync(selectedApplication.Id, editingCvPath.Trim());
+            if (updated != null)
+            {
+                selectedApplication.CvFilePath = updated.CvFilePath;
+                // Sync main dashboard state
+                var mainApp = applications.FirstOrDefault(a => a.Id == selectedApplication.Id);
+                if (mainApp != null) mainApp.CvFilePath = updated.CvFilePath;
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task AddNoteAsync()
+    {
+        if (selectedApplication == null || string.IsNullOrWhiteSpace(newNoteContent)) return;
+
+        try
+        {
+            var savedNote = await ApiService.AddNoteAsync(selectedApplication.Id, newNoteContent.Trim());
+            if (savedNote != null)
+            {
+                selectedApplication.Notes.Add(savedNote);
+                newNoteContent = string.Empty;
+                StateHasChanged();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task HandleNoteEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AddNoteAsync();
+        }
+    }
+
+    private async Task DeleteNoteAsync(long noteId)
+    {
+        if (selectedApplication == null) return;
+
+        try
+        {
+            var success = await ApiService.DeleteNoteAsync(noteId);
+            if (success)
+            {
+                selectedApplication.Notes.RemoveAll(n => n.Id == noteId);
+                StateHasChanged();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task AddContactAsync()
+    {
+        if (selectedApplication == null || string.IsNullOrWhiteSpace(newContactName)) return;
+
+        try
+        {
+            var saved = await ApiService.AddContactAsync(
+                selectedApplication.Id, 
+                newContactName.Trim(), 
+                newContactRole.Trim(), 
+                newContactEmail.Trim(), 
+                newContactPhone.Trim()
+            );
+
+            if (saved != null)
+            {
+                selectedApplication.Contacts.Add(saved);
+                ClearContactForm();
+                StateHasChanged();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task DeleteContactAsync(long contactId)
+    {
+        if (selectedApplication == null) return;
+
+        try
+        {
+            var success = await ApiService.DeleteContactAsync(contactId);
+            if (success)
+            {
+                selectedApplication.Contacts.RemoveAll(c => c.Id == contactId);
+                StateHasChanged();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private async Task DeleteApplicationAsync()
+    {
+        if (selectedApplication == null) return;
+
+        try
+        {
+            var success = await ApiService.DeleteApplicationAsync(selectedApplication.Id);
+            if (success)
+            {
+                applications.RemoveAll(a => a.Id == selectedApplication.Id);
+                CloseDrawer();
+                StateHasChanged();
+            }
+        }
+        catch (Exception) { }
+    }
+
+    private void ClearContactForm()
+    {
+        newContactName = string.Empty;
+        newContactRole = string.Empty;
+        newContactEmail = string.Empty;
+        newContactPhone = string.Empty;
+    }
+}

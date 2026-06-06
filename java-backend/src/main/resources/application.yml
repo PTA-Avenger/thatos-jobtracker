@@ -1,0 +1,11 @@
+spring:
+  profiles:
+    active: dev
+
+server:
+  port: 8085
+
+jwt:
+  # Secret key used to sign JWT tokens. Minimum 256 bits (32 bytes).
+  secret: 9a6140f1a92444dfb80b7e4e040c5f21226019b7a421477aa2a98e5e89d1b092
+  expiration: 28800000 # 8 hours in milliseconds

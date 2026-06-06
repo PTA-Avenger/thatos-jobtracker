@@ -1,0 +1,101 @@
+@page "/login"
+
+<div class="auth-container">
+    <div class="glass-card auth-card">
+        <div class="auth-header">
+            <div class="sidebar-logo justify-content-center mb-2">
+                <i class="bi bi-briefcase-fill"></i> JobTracker
+            </div>
+            <h2 class="auth-title">Welcome Back</h2>
+            <p class="text-secondary small">Track your job applications in one ecosystem</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger border-0 small text-center" style="background: rgba(239, 68, 68, 0.15); color: #f87171;" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @errorMessage
+            </div>
+        }
+
+        <form @onsubmit="HandleLogin" autocomplete="off">
+            <div class="glass-form-group">
+                <label class="glass-label" for="username">Username</label>
+                <input type="text" id="username" class="glass-input" placeholder="Enter your username" @bind="username" required />
+            </div>
+
+            <div class="glass-form-group">
+                <label class="glass-label" for="password">Password</label>
+                <input type="password" id="password" class="glass-input" placeholder="••••••••" @bind="password" required />
+            </div>
+
+            <button type="submit" class="btn-gradient w-100 mt-3" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <p class="small text-secondary mb-0">
+                Don't have an account? 
+                <a href="register" class="text-primary fw-semibold text-decoration-none">Create account</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback OnLoginSuccess { get; set; }
+
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Please enter both username and password.";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var success = await ApiService.LoginAsync(username.Trim(), password);
+            if (success)
+            {
+                if (OnLoginSuccess.HasDelegate)
+                {
+                    await OnLoginSuccess.InvokeAsync();
+                }
+                else
+                {
+                    Navigation.NavigateTo("");
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid username or password.";
+            }
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not connect to the backend server. Make sure it is running.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

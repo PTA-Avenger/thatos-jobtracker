@@ -1,0 +1,201 @@
+@page "/jobs"
+
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 font-weight-bold mb-1">Discover Jobs</h1>
+            <p class="text-secondary small">Browse listings automatically aggregated by your Ryzen local scraper</p>
+        </div>
+    </div>
+
+    <!-- Search / Filter Bar -->
+    <div class="glass-card mb-4">
+        <form @onsubmit="() => SearchJobs(0)" class="row g-3">
+            <div class="col-md-3">
+                <label class="glass-label">Job Title</label>
+                <input type="text" class="glass-input py-2" placeholder="e.g. Software Engineer" @bind="searchTitle" />
+            </div>
+            <div class="col-md-3">
+                <label class="glass-label">Company</label>
+                <input type="text" class="glass-input py-2" placeholder="e.g. Microsoft" @bind="searchCompany" />
+            </div>
+            <div class="col-md-3">
+                <label class="glass-label">Required Skills</label>
+                <input type="text" class="glass-input py-2" placeholder="e.g. Java, Python" @bind="searchSkills" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn-gradient w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-search"></i> Search Listings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center py-5">
+            <div class="app-loader-spinner"></div>
+        </div>
+    }
+    else if (jobsPage == null || jobsPage.Content.Count == 0)
+    {
+        <div class="glass-card text-center py-5">
+            <i class="bi bi-briefcase text-secondary fs-1 mb-3"></i>
+            <h3 class="h5 font-weight-bold mb-2">No Jobs Found</h3>
+            <p class="text-secondary small mb-0">Try clearing your filters or check if your scraper has successfully uploaded jobs.</p>
+        </div>
+    }
+    else
+    {
+        <!-- Jobs List -->
+        <div class="jobs-list-container mb-4">
+            @foreach (var job in jobsPage.Content)
+            {
+                <div class="glass-card job-row-card">
+                    <div class="job-row-details">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <h3 class="h5 font-weight-bold m-0 text-primary">@job.Title</h3>
+                            <span class="badge small bg-dark border border-secondary text-secondary">
+                                <i class="bi bi-calendar-event me-1"></i> @job.DatePosted
+                            </span>
+                        </div>
+                        <p class="text-secondary small mb-3">
+                            <span class="fw-semibold text-light me-3"><i class="bi bi-building me-1"></i> @job.Company</span>
+                            <span><i class="bi bi-geo-alt me-1"></i> @job.Location</span>
+                        </p>
+                        
+                        <!-- Skills tags -->
+                        <div class="mb-3">
+                            @if (!string.IsNullOrEmpty(job.Skills))
+                            {
+                                var skills = job.Skills.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                foreach (var skill in skills)
+                                {
+                                    <span class="skill-badge me-1">@skill.Trim()</span>
+                                }
+                            }
+                        </div>
+
+                        <!-- Job Description Preview (Truncated) -->
+                        <div class="text-secondary small text-truncate-3" style="max-height: 50px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal;">
+                            @job.Description
+                        </div>
+                    </div>
+
+                    <div class="job-row-actions">
+                        @if (trackedJobIds.Contains(job.Id))
+                        {
+                            <button class="btn btn-outline border-success text-success d-flex align-items-center gap-2" disabled>
+                                <i class="bi bi-check2-circle"></i> Tracked
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn-gradient d-flex align-items-center gap-2" @onclick="() => TrackJobAsync(job)" disabled="@trackingLoadingIds.Contains(job.Id)">
+                                @if (trackingLoadingIds.Contains(job.Id))
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-plus-lg"></i>
+                                }
+                                <span>Track Application</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination Controls -->
+        @if (jobsPage.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-between align-items-center glass-card py-2 px-3">
+                <span class="small text-secondary">
+                    Showing page @(jobsPage.Number + 1) of @jobsPage.TotalPages (@jobsPage.TotalElements listings total)
+                </span>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline py-1 px-3" 
+                            disabled="@(jobsPage.Number == 0)" 
+                            @onclick="() => SearchJobs(jobsPage.Number - 1)">
+                        <i class="bi bi-chevron-left me-1"></i> Previous
+                    </button>
+                    <button class="btn btn-sm btn-outline py-1 px-3" 
+                            disabled="@(jobsPage.Number >= jobsPage.TotalPages - 1)" 
+                            @onclick="() => SearchJobs(jobsPage.Number + 1)">
+                        Next <i class="bi bi-chevron-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private PaginatedResponse<Job>? jobsPage;
+    private HashSet<long> trackedJobIds = new();
+    private HashSet<long> trackingLoadingIds = new();
+    private bool isLoading = true;
+
+    // Search properties
+    private string searchTitle = string.Empty;
+    private string searchCompany = string.Empty;
+    private string searchSkills = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTrackedJobsAsync();
+        await SearchJobs(0);
+    }
+
+    private async Task LoadTrackedJobsAsync()
+    {
+        try
+        {
+            var apps = await ApiService.GetApplicationsAsync();
+            trackedJobIds = apps.Select(a => a.Job.Id).ToHashSet();
+        }
+        catch (Exception) { }
+    }
+
+    private async Task SearchJobs(int pageNumber)
+    {
+        isLoading = true;
+        try
+        {
+            jobsPage = await ApiService.GetJobsAsync(
+                string.IsNullOrWhiteSpace(searchTitle) ? null : searchTitle.Trim(),
+                string.IsNullOrWhiteSpace(searchCompany) ? null : searchCompany.Trim(),
+                string.IsNullOrWhiteSpace(searchSkills) ? null : searchSkills.Trim(),
+                pageNumber, 10
+            );
+        }
+        catch (Exception) { }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task TrackJobAsync(Job job)
+    {
+        trackingLoadingIds.Add(job.Id);
+        StateHasChanged();
+
+        try
+        {
+            var app = await ApiService.CreateApplicationAsync(job.Id, "Saved");
+            if (app != null)
+            {
+                trackedJobIds.Add(job.Id); // Add to local tracked list
+            }
+        }
+        catch (Exception) { }
+        finally
+        {
+            trackingLoadingIds.Remove(job.Id);
+            StateHasChanged();
+        }
+    }
+}

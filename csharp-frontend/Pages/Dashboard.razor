@@ -1,0 +1,162 @@
+@page "/dashboard"
+
+<div class="container-fluid p-0">
+    <div class="mb-4">
+        <h1 class="h3 font-weight-bold mb-1">Analytics Dashboard</h1>
+        <p class="text-secondary small">Real-time metrics and funnel tracking for your job hunt</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center py-5">
+            <div class="app-loader-spinner"></div>
+        </div>
+    }
+    else if (stats == null || stats.TotalApplications == 0)
+    {
+        <div class="glass-card text-center py-5">
+            <i class="bi bi-graph-up text-secondary fs-1 mb-3"></i>
+            <h3 class="h5 font-weight-bold mb-2">No Data Available</h3>
+            <p class="text-secondary small mb-0">Track applications on your board to populate the dashboard metrics.</p>
+        </div>
+    }
+    else
+    {
+        <!-- Stats Row -->
+        <div class="stats-grid">
+            <div class="glass-card stat-box Saved">
+                <div class="stat-label">Saved Jobs</div>
+                <div class="stat-value text-muted" style="color: var(--color-saved) !important;">@GetStatusCount("Saved")</div>
+            </div>
+            <div class="glass-card stat-box Applied">
+                <div class="stat-label">Applied</div>
+                <div class="stat-value text-primary" style="color: var(--color-applied) !important;">@GetStatusCount("Applied")</div>
+            </div>
+            <div class="glass-card stat-box Interview">
+                <div class="stat-label">Interviews</div>
+                <div class="stat-value text-warning" style="color: var(--color-interview) !important;">@GetStatusCount("Interview")</div>
+            </div>
+            <div class="glass-card stat-box Offer">
+                <div class="stat-label">Offers</div>
+                <div class="stat-value text-success" style="color: var(--color-offer) !important;">@GetStatusCount("Offer")</div>
+            </div>
+            <div class="glass-card stat-box Rejected">
+                <div class="stat-label">Rejected</div>
+                <div class="stat-value text-danger" style="color: var(--color-rejected) !important;">@GetStatusCount("Rejected")</div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Funnel Conversion Rates -->
+            <div class="col-lg-6">
+                <div class="glass-card h-100">
+                    <h2 class="h5 font-weight-bold mb-4"><i class="bi bi-funnel-fill text-info me-2"></i> Application Funnel</h2>
+                    
+                    @{
+                        var total = stats.TotalApplications;
+                        var applied = GetStatusCount("Applied");
+                        var interviews = GetStatusCount("Interview");
+                        var offers = GetStatusCount("Offer");
+
+                        double appliedRate = total > 0 ? (double)(applied + interviews + offers) / total * 100 : 0;
+                        double interviewRate = (applied + interviews + offers) > 0 ? (double)(interviews + offers) / (applied + interviews + offers) * 100 : 0;
+                        double offerRate = interviews > 0 ? (double)offers / interviews * 100 : 0;
+                    }
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-secondary">Tracking to Application Rate (Saved → Applied)</span>
+                            <span class="text-light fw-semibold">@appliedRate.ToString("0")%</span>
+                        </div>
+                        <div class="progress" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: @(appliedRate)%; background: linear-gradient(135deg, #3b82f6, #06b6d4); border-radius: 6px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-secondary">Interview Conversion Rate (Applied → Interview)</span>
+                            <span class="text-light fw-semibold">@interviewRate.ToString("0")%</span>
+                        </div>
+                        <div class="progress" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: @(interviewRate)%; background: linear-gradient(135deg, #f59e0b, #eab308); border-radius: 6px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-secondary">Offer Success Rate (Interview → Offer)</span>
+                            <span class="text-light fw-semibold">@offerRate.ToString("0")%</span>
+                        </div>
+                        <div class="progress" style="height: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: @(offerRate)%; background: linear-gradient(135deg, #10b981, #059669); border-radius: 6px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top border-secondary text-secondary small">
+                        <i class="bi bi-info-circle me-1"></i> Funnel calculations include active stages to represent overall conversion rates.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="col-lg-6">
+                <div class="glass-card h-100">
+                    <h2 class="h5 font-weight-bold mb-4"><i class="bi bi-clock-history text-purple me-2"></i> Scrape & Tracking Activity</h2>
+                    <div class="sub-list" style="max-height: 300px; overflow-y: auto;">
+                        @if (stats.ApplicationTimeline == null || stats.ApplicationTimeline.Count == 0)
+                        {
+                            <div class="text-center text-muted small py-5">
+                                No activity recorded.
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var day in stats.ApplicationTimeline.OrderByDescending(d => d.Key).Take(7))
+                            {
+                                <div class="sub-item">
+                                    <span class="sub-item-text"><i class="bi bi-calendar-check me-2 text-info"></i> Tracked Job applications</span>
+                                    <span class="badge bg-dark border border-secondary px-3 py-1 text-primary">@day.Value applied</span>
+                                    <span class="sub-item-meta">@day.Key</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardStats? stats;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            stats = await ApiService.GetDashboardStatsAsync();
+        }
+        catch (Exception) { }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private long GetStatusCount(string status)
+    {
+        if (stats != null && stats.StatusDistribution.TryGetValue(status, out var val))
+        {
+            return val;
+        }
+        return 0;
+    }
+}

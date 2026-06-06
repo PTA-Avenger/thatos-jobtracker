@@ -1,0 +1,116 @@
+@page "/register"
+
+<div class="auth-container">
+    <div class="glass-card auth-card">
+        <div class="auth-header">
+            <div class="sidebar-logo justify-content-center mb-2">
+                <i class="bi bi-briefcase-fill"></i> JobTracker
+            </div>
+            <h2 class="auth-title">Create Account</h2>
+            <p class="text-secondary small">Begin tracking your applications across platforms</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger border-0 small text-center" style="background: rgba(239, 68, 68, 0.15); color: #f87171;" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @errorMessage
+            </div>
+        }
+
+        @if (isSuccess)
+        {
+            <div class="alert alert-success border-0 small text-center" style="background: rgba(16, 185, 129, 0.15); color: #34d399;" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> Registration successful! Redirecting to login...
+            </div>
+        }
+        else
+        {
+            <form @onsubmit="HandleRegister" autocomplete="off">
+                <div class="glass-form-group">
+                    <label class="glass-label" for="username">Username</label>
+                    <input type="text" id="username" class="glass-input" placeholder="Create a username" @bind="username" required />
+                </div>
+
+                <div class="glass-form-group">
+                    <label class="glass-label" for="password">Password</label>
+                    <input type="password" id="password" class="glass-input" placeholder="••••••••" @bind="password" required />
+                </div>
+
+                <div class="glass-form-group">
+                    <label class="glass-label" for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" class="glass-input" placeholder="••••••••" @bind="confirmPassword" required />
+                </div>
+
+                <button type="submit" class="btn-gradient w-100 mt-3" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Creating account...</span>
+                    }
+                    else
+                    {
+                        <span>Register</span>
+                    }
+                </button>
+            </form>
+        }
+
+        <div class="text-center mt-4">
+            <p class="small text-secondary mb-0">
+                Already have an account? 
+                <a href="" class="text-primary fw-semibold text-decoration-none">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+    private bool isSuccess = false;
+
+    private async Task HandleRegister()
+    {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Please enter both username and password.";
+            return;
+        }
+
+        if (password != confirmPassword)
+        {
+            errorMessage = "Passwords do not match.";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var success = await ApiService.RegisterAsync(username.Trim(), password);
+            if (success)
+            {
+                isSuccess = true;
+                StateHasChanged();
+                await Task.Delay(2000);
+                Navigation.NavigateTo("");
+            }
+            else
+            {
+                errorMessage = "Username is already taken or invalid.";
+            }
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not connect to the backend server. Make sure it is running.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
