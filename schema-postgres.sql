@@ -2,6 +2,13 @@
 -- MultiLang Job Tracker Database Schema (PostgreSQL / Supabase Version)
 -- ==========================================================================
 
+-- Clean reset of tables (Drops child tables first to avoid foreign key errors)
+DROP TABLE IF EXISTS contacts;
+DROP TABLE IF EXISTS notes;
+DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS jobs;
+DROP TABLE IF EXISTS users;
+
 -- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
