@@ -13,13 +13,13 @@ The **MultiLang Job Tracker** is a student portfolio project that demonstrates e
 
 ```mermaid
 graph TD
-    subgraph Local PC (Ryzen 5)
+    subgraph "Local PC (Ryzen 5)"
         Scraper[Python Scraper script] -- 1. Pulls RSS Feed --> WWR[WeWorkRemotely RSS]
         Scraper -- 2. Zero-shot Classification --> HF[Hugging Face Inference API]
         Scraper -- "3. POST /api/jobs/import (with Key)" --> RenderAPI
     end
 
-    subgraph 100% Free Cloud Infrastructure
+    subgraph "100% Free Cloud Infrastructure"
         VercelWeb[Blazor WASM WebApp on Vercel] -- "4. User actions (JWT Session)" --> RenderAPI[Spring Boot REST API on Render]
         RenderAPI -- "5. Persists application records" --> SupabaseDB[(Supabase PostgreSQL)]
     end
