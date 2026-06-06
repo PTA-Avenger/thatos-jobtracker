@@ -18,7 +18,7 @@ namespace csharp_frontend.Services
             _js = js;
             
             // Dynamically resolve backend endpoint
-            _apiBaseUrl = "https://jobtracker-backend-thato.onrender.com"; // Default remote endpoint
+            _apiBaseUrl = "https://thatos-jobtracker-api.onrender.com"; // Default remote endpoint
             var baseAddress = _http.BaseAddress?.ToString() ?? "";
             if (baseAddress.Contains("localhost") || baseAddress.Contains("127.0.0.1"))
             {
