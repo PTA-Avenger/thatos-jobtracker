@@ -116,12 +116,23 @@ namespace csharp_frontend.Services
 
         // --- Jobs Resources ---
 
-        public async Task<PaginatedResponse<Job>?> GetJobsAsync(string? title = null, string? company = null, string? skills = null, int page = 0, int size = 10)
+        public async Task<PaginatedResponse<Job>?> GetJobsAsync(
+            string? title = null, 
+            string? company = null, 
+            string? skills = null, 
+            bool? visaSponsorship = null,
+            int? maxExperience = null,
+            string? sourcePlatform = null,
+            int page = 0, 
+            int size = 10)
         {
             var queryParams = new List<string>();
             if (!string.IsNullOrEmpty(title)) queryParams.Add($"title={Uri.EscapeDataString(title)}");
             if (!string.IsNullOrEmpty(company)) queryParams.Add($"company={Uri.EscapeDataString(company)}");
             if (!string.IsNullOrEmpty(skills)) queryParams.Add($"skills={Uri.EscapeDataString(skills)}");
+            if (visaSponsorship.HasValue) queryParams.Add($"visaSponsorship={visaSponsorship.Value.ToString().ToLower()}");
+            if (maxExperience.HasValue) queryParams.Add($"maxExperience={maxExperience.Value}");
+            if (!string.IsNullOrEmpty(sourcePlatform)) queryParams.Add($"sourcePlatform={Uri.EscapeDataString(sourcePlatform)}");
             queryParams.Add($"page={page}");
             queryParams.Add($"size={size}");
 

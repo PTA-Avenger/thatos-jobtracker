@@ -31,6 +31,9 @@ public class JobController {
             @RequestParam(required = false) String skills,
             @RequestParam(required = false) String company,
             @RequestParam(required = false) String title,
+            @RequestParam(required = false) Boolean visaSponsorship,
+            @RequestParam(required = false) Integer maxExperience,
+            @RequestParam(required = false) String sourcePlatform,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id,desc") String[] sort) {
@@ -48,7 +51,7 @@ public class JobController {
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(orders));
-        Page<Job> jobsPage = jobRepository.findWithFilters(skills, company, title, pageable);
+        Page<Job> jobsPage = jobRepository.findWithFilters(skills, company, title, visaSponsorship, maxExperience, sourcePlatform, pageable);
 
         return ResponseEntity.ok(jobsPage);
     }

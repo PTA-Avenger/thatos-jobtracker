@@ -11,17 +11,46 @@
     <!-- Search / Filter Bar -->
     <div class="glass-card mb-4">
         <form @onsubmit="() => SearchJobs(0)" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="glass-label">Job Title</label>
                 <input type="text" class="glass-input py-2" placeholder="e.g. Software Engineer" @bind="searchTitle" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="glass-label">Company</label>
                 <input type="text" class="glass-input py-2" placeholder="e.g. Microsoft" @bind="searchCompany" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="glass-label">Required Skills</label>
                 <input type="text" class="glass-input py-2" placeholder="e.g. Java, Python" @bind="searchSkills" />
+            </div>
+            
+            <div class="col-md-3">
+                <label class="glass-label">Visa Sponsorship</label>
+                <select class="glass-input py-2" @bind="searchVisaSelected">
+                    <option value="">All</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="glass-label">Max Experience Required</label>
+                <select class="glass-input py-2" @bind="searchMaxExperienceSelected">
+                    <option value="">All</option>
+                    <option value="0">0 Years (Grad/Entry)</option>
+                    <option value="1">1 Year</option>
+                    <option value="2">2 Years</option>
+                    <option value="3">3 Years</option>
+                    <option value="5">5 Years</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="glass-label">Source Platform</label>
+                <select class="glass-input py-2" @bind="searchSource">
+                    <option value="">All</option>
+                    <option value="OfferZen">OfferZen</option>
+                    <option value="Prosple">Prosple</option>
+                    <option value="WeWorkRemotely">WeWorkRemotely</option>
+                </select>
             </div>
             <div class="col-md-3 d-flex align-items-end">
                 <button type="submit" class="btn-gradient w-100 py-2 d-flex align-items-center justify-content-center gap-2">
@@ -53,10 +82,43 @@
             {
                 <div class="glass-card job-row-card">
                     <div class="job-row-details">
-                        <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                             <h3 class="h5 font-weight-bold m-0 text-primary">@job.Title</h3>
-                            <span class="badge small bg-dark border border-secondary text-secondary">
-                                <i class="bi bi-calendar-event me-1"></i> @job.DatePosted
+                            
+                            @if (!string.IsNullOrEmpty(job.SourcePlatform))
+                            {
+                                <span class="badge bg-secondary text-dark fw-bold">@job.SourcePlatform</span>
+                            }
+                            
+                            @if (job.IsGhostJob)
+                            {
+                                <span class="badge bg-danger text-white fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Possible Ghost Job</span>
+                            }
+
+                            @if (!string.IsNullOrEmpty(job.ClosingDate))
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Deadline: @job.ClosingDate</span>
+                            }
+                            
+                            @if (job.VisaSponsorship.HasValue)
+                            {
+                                @if (job.VisaSponsorship.Value)
+                                {
+                                    <span class="badge bg-success text-white"><i class="bi bi-passport me-1"></i> Visa Sponsored</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-dark border border-secondary text-secondary"><i class="bi bi-x-circle me-1"></i> No Visa</span>
+                                }
+                            }
+                            
+                            @if (job.YearsExperienceRequired.HasValue)
+                            {
+                                <span class="badge bg-info text-dark"><i class="bi bi-person-workspace me-1"></i> @(job.YearsExperienceRequired.Value == 0 ? "Entry/Grad" : $"{job.YearsExperienceRequired.Value} Yrs Exp")</span>
+                            }
+                            
+                            <span class="badge bg-dark border border-secondary text-secondary">
+                                <i class="bi bi-calendar-event me-1"></i> Posted: @job.DatePosted
                             </span>
                         </div>
                         <p class="text-secondary small mb-3">
@@ -142,6 +204,14 @@
     private string searchTitle = string.Empty;
     private string searchCompany = string.Empty;
     private string searchSkills = string.Empty;
+    
+    private string searchVisaSelected = string.Empty;
+    private bool? searchVisa => string.IsNullOrEmpty(searchVisaSelected) ? null : bool.Parse(searchVisaSelected);
+    
+    private string searchMaxExperienceSelected = string.Empty;
+    private int? searchMaxExperience => string.IsNullOrEmpty(searchMaxExperienceSelected) ? null : int.Parse(searchMaxExperienceSelected);
+    
+    private string searchSource = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -168,6 +238,9 @@
                 string.IsNullOrWhiteSpace(searchTitle) ? null : searchTitle.Trim(),
                 string.IsNullOrWhiteSpace(searchCompany) ? null : searchCompany.Trim(),
                 string.IsNullOrWhiteSpace(searchSkills) ? null : searchSkills.Trim(),
+                searchVisa,
+                searchMaxExperience,
+                string.IsNullOrWhiteSpace(searchSource) ? null : searchSource.Trim(),
                 pageNumber, 10
             );
         }
@@ -185,7 +258,7 @@
 
         try
         {
-            var app = await ApiService.CreateApplicationAsync(job.Id, "Saved");
+            var app = await ApiService.CreateApplicationAsync(job.Id, "To Apply");
             if (app != null)
             {
                 trackedJobIds.Add(job.Id); // Add to local tracked list

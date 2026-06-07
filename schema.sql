@@ -23,6 +23,12 @@ CREATE TABLE IF NOT EXISTS jobs (
     date_posted VARCHAR(50),
     date_scraped VARCHAR(50),
     job_hash VARCHAR(255) NOT NULL,
+    closing_date VARCHAR(50),
+    visa_sponsorship BOOLEAN,
+    years_experience_required INTEGER,
+    snapshot_path VARCHAR(512),
+    source_platform VARCHAR(100),
+    is_ghost_job BOOLEAN,
     CONSTRAINT UQ_jobs_job_hash UNIQUE (job_hash)
 );
 
@@ -31,12 +37,21 @@ CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id BIGINT NOT NULL,
     job_id BIGINT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'Saved', -- Saved, Applied, Interview, Offer, Rejected
+    status VARCHAR(50) NOT NULL DEFAULT 'To Apply', -- To Apply, Applied, Online Assessment, Interview, Offer, Rejected
     date_applied VARCHAR(50),
     cv_file_path VARCHAR(255),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
-    CONSTRAINT UQ_user_job UNIQUE (user_id, job_id)
+    CONSTRAINT UQ_user_job UNIQUE (user_id, job_id),
+    CONSTRAINT chk_status CHECK (status IN ('To Apply', 'Applied', 'Online Assessment', 'Interview', 'Offer', 'Rejected'))
+);
+
+-- 3b. Interview Intelligence Table
+CREATE TABLE IF NOT EXISTS interview_intelligence (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_name VARCHAR(255) NOT NULL UNIQUE,
+    format_details TEXT,
+    difficulty VARCHAR(50)
 );
 
 -- 4. Notes Table (Comments linked to applications)

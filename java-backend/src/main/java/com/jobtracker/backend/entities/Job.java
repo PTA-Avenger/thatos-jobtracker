@@ -27,6 +27,14 @@ public class Job {
 
     private String jobHash; // Hashed value of title + company + datePosted for deduplication
 
+    // New SDE engine fields
+    private String closingDate;
+    private Boolean visaSponsorship;
+    private Integer yearsExperienceRequired;
+    private String snapshotPath;
+    private String sourcePlatform;
+    private Boolean isGhostJob;
+
     public Job() {}
 
     public Job(String title, String company, String location, String description, String skills, String url, String datePosted, String dateScraped, String jobHash) {
@@ -39,6 +47,25 @@ public class Job {
         this.datePosted = datePosted;
         this.dateScraped = dateScraped;
         this.jobHash = jobHash;
+    }
+
+    public Job(String title, String company, String location, String description, String skills, String url, String datePosted, String dateScraped, String jobHash, 
+               String closingDate, Boolean visaSponsorship, Integer yearsExperienceRequired, String snapshotPath, String sourcePlatform, Boolean isGhostJob) {
+        this.title = title;
+        this.company = company;
+        this.location = location;
+        this.description = description;
+        this.skills = skills;
+        this.url = url;
+        this.datePosted = datePosted;
+        this.dateScraped = dateScraped;
+        this.jobHash = jobHash;
+        this.closingDate = closingDate;
+        this.visaSponsorship = visaSponsorship;
+        this.yearsExperienceRequired = yearsExperienceRequired;
+        this.snapshotPath = snapshotPath;
+        this.sourcePlatform = sourcePlatform;
+        this.isGhostJob = isGhostJob;
     }
 
     public Long getId() {
@@ -119,5 +146,53 @@ public class Job {
 
     public void setJobHash(String jobHash) {
         this.jobHash = jobHash;
+    }
+
+    public String getClosingDate() {
+        return closingDate;
+    }
+
+    public void setClosingDate(String closingDate) {
+        this.closingDate = closingDate;
+    }
+
+    public Boolean getVisaSponsorship() {
+        return visaSponsorship;
+    }
+
+    public void setVisaSponsorship(Boolean visaSponsorship) {
+        this.visaSponsorship = visaSponsorship;
+    }
+
+    public Integer getYearsExperienceRequired() {
+        return yearsExperienceRequired;
+    }
+
+    public void setYearsExperienceRequired(Integer yearsExperienceRequired) {
+        this.yearsExperienceRequired = yearsExperienceRequired;
+    }
+
+    public String getSnapshotPath() {
+        return snapshotPath;
+    }
+
+    public void setSnapshotPath(String snapshotPath) {
+        this.snapshotPath = snapshotPath;
+    }
+
+    public String getSourcePlatform() {
+        return sourcePlatform;
+    }
+
+    public void setSourcePlatform(String sourcePlatform) {
+        this.sourcePlatform = sourcePlatform;
+    }
+
+    public Boolean getIsGhostJob() {
+        return isGhostJob;
+    }
+
+    public void setIsGhostJob(Boolean isGhostJob) {
+        this.isGhostJob = isGhostJob;
     }
 }

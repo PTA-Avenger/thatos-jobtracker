@@ -2,6 +2,7 @@
 python-scraper/.env
 python-scraper/__pycache__/
 python-scraper/*.pyc
+python-scraper/vault/
 *.pyc
 __pycache__/
 

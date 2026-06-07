@@ -60,6 +60,24 @@ namespace csharp_frontend.Models
 
         [JsonPropertyName("jobHash")]
         public string JobHash { get; set; } = string.Empty;
+
+        [JsonPropertyName("closingDate")]
+        public string ClosingDate { get; set; } = string.Empty;
+
+        [JsonPropertyName("visaSponsorship")]
+        public bool? VisaSponsorship { get; set; }
+
+        [JsonPropertyName("yearsExperienceRequired")]
+        public int? YearsExperienceRequired { get; set; }
+
+        [JsonPropertyName("snapshotPath")]
+        public string SnapshotPath { get; set; } = string.Empty;
+
+        [JsonPropertyName("sourcePlatform")]
+        public string SourcePlatform { get; set; } = string.Empty;
+
+        [JsonPropertyName("isGhostJob")]
+        public bool IsGhostJob { get; set; }
     }
 
     public class Application
